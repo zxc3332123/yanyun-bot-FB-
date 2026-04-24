@@ -2,19 +2,23 @@ name: FB Monitor Agent
 
 on:
   schedule:
-    # 這裡設定每小時跑一次 (UTC 時間)
+    # 每小時跑一次 (UTC 時間)
     - cron: '0 * * * *'
-  workflow_dispatch: # 讓你可以在介面上手動點擊執行測試
+  workflow_dispatch: # 允許手動執行
+
+# 關鍵修正：必須授予寫入權限，否則 git push 會失敗
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 檢出程式碼
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # 升級至 v4
 
       - name: 設定 Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # 升級至 v5
         with:
           python-version: '3.9'
 
@@ -30,10 +34,17 @@ jobs:
 
       - name: 儲存進度 (Git Commit)
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          # 檢查檔案是否存在，若不存在則建立一個空的，避免 git add 報錯
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # 確保檔案存在
           touch last_link.txt 
           git add last_link.txt
-          # 只有在檔案內容有變動時才 commit，避免空 commit 導致錯誤
-          git diff --quiet && git diff --staged --quiet || (git commit -m "更新最後讀取連結" && git push)
+          
+          # 檢查是否有變動，有的話才 Commit 並 Push
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: 更新最後讀取連結 [skip ci]"
+            git push
+          else
+            echo "No changes to commit"
+          fi
