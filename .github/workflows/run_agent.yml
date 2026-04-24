@@ -1,0 +1,37 @@
+name: FB Monitor Agent
+
+on:
+  schedule:
+    # 這裡設定每小時跑一次 (UTC 時間)
+    - cron: '0 * * * *'
+  workflow_dispatch: # 讓你可以在介面上手動點擊執行測試
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 檢出程式碼
+        uses: actions/checkout@v3
+
+      - name: 設定 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 安裝必要套件
+        run: |
+          pip install feedparser requests
+
+      - name: 執行監控腳本
+        env:
+          FB_RSS_URL: ${{ secrets.FB_RSS_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python main.py
+
+      - name: 儲存進度 (Git Commit)
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add last_link.txt
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update last link"
+          git push
