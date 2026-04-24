@@ -65,7 +65,7 @@ def check_updates():
         if image_url:
             embed["image"] = {"url": image_url}
 
-        payload = {"username": "紅線", "embeds": [embed]}
+        payload = {"username": "搖紅女俠", "embeds": [embed]}
 
         try:
             res = requests.post(DISCORD_WEBHOOK, json=payload, timeout=10)
