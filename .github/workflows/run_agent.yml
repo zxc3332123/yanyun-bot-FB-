@@ -30,7 +30,17 @@ jobs:
         env:
           FB_RSS_URL: ${{ secrets.FB_RSS_URL }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: python main.py
+        run: |
+          # 檢查環境變數是否為空 (不會洩漏具體內容)
+          if [ -z "$FB_RSS_URL" ]; then echo "錯誤: FB_RSS_URL 是空的"; fi
+          if [ -z "$DISCORD_WEBHOOK" ]; then echo "錯誤: DISCORD_WEBHOOK 是空的"; fi
+          
+          # 執行程式
+          python main.py
+          
+          # 強制檢查一下 last_link.txt 的內容
+          echo "目前 last_link.txt 的內容為："
+          cat last_link.txt || echo "檔案不存在"
 
       - name: 儲存進度 (Git Commit)
         run: |
