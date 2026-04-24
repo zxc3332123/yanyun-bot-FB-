@@ -32,6 +32,8 @@ jobs:
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
+          # 檢查檔案是否存在，若不存在則建立一個空的，避免 git add 報錯
+          touch last_link.txt 
           git add last_link.txt
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update last link"
-          git push
+          # 只有在檔案內容有變動時才 commit，避免空 commit 導致錯誤
+          git diff --quiet && git diff --staged --quiet || (git commit -m "更新最後讀取連結" && git push)
