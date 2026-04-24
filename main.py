@@ -71,12 +71,13 @@ def check_updates():
         
         res = requests.post(DISCORD_WEBHOOK, json=payload)
         
-        if res.status_code == 204:
+        # 修正：Discord 成功狀態碼可能是 200 或 204
+        if res.status_code in [200, 204]:
             print("紅線任務完成！")
-            with open(DB_FILE, "w") as f:
+            with open(DB_FILE, "w") as f: # 確保這行會被執行
                 f.write(latest_link)
         else:
-            print(f"紅線在半路跌倒了，錯誤碼：{res.status_code}")
+            print(f"發送失敗，錯誤碼：{res.status_code}")
     else:
         print("目前平安無事，繼續等糖吃。")
 
