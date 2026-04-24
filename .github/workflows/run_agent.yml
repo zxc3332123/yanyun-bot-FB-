@@ -2,25 +2,26 @@ name: FB Monitor Agent
 
 on:
   schedule:
-    # 這裡設定每小時跑一次 (UTC 時間)
     - cron: '0 * * * *'
-  workflow_dispatch: # 讓你可以在介面上手動點擊執行測試
+  workflow_dispatch:
+
+permissions:
+  contents: write # 必須有這個，Git Push 才會成功
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 檢出程式碼
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 設定 Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
       - name: 安裝必要套件
-        run: |
-          pip install feedparser requests
+        run: pip install feedparser requests
 
       - name: 執行監控腳本
         env:
@@ -30,8 +31,21 @@ jobs:
 
       - name: 儲存進度 (Git Commit)
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # 防錯機制：如果 main.py 失敗沒產生檔案，這裡手動 touch 一個出來
+          if [ ! -f last_link.txt ]; then
+            echo "警告：找不到 last_link.txt，建立空檔案以防止報錯。"
+            touch last_link.txt
+          fi
+          
           git add last_link.txt
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update last link"
-          git push
+          
+          # 檢查是否有內容變動，有才 Commit
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: 更新最後讀取連結"
+            git push
+          else
+            echo "沒有新內容，跳過更新。"
+          fi
