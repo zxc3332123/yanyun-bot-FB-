@@ -39,7 +39,7 @@ def check_updates():
         )
 
         payload = {
-            "username": "紅線",
+            "username": "搖紅女俠",
             # 如果你有紅線的頭像圖片網址，可以填在下面這行，會更像本人
             # "avatar_url": "https://example.com/hongxian_avatar.png", 
             "content": persona_content
