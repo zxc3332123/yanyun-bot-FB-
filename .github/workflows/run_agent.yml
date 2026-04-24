@@ -2,23 +2,19 @@ name: FB Monitor Agent
 
 on:
   schedule:
-    # 每小時跑一次 (UTC 時間)
+    # 這裡設定每小時跑一次 (UTC 時間)
     - cron: '0 * * * *'
-  workflow_dispatch: # 允許手動執行
-
-# 關鍵修正：必須授予寫入權限，否則 git push 會失敗
-permissions:
-  contents: write
+  workflow_dispatch: # 讓你可以在介面上手動點擊執行測試
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 檢出程式碼
-        uses: actions/checkout@v4 # 升級至 v4
+        uses: actions/checkout@v3
 
       - name: 設定 Python
-        uses: actions/setup-python@v5 # 升級至 v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
@@ -30,31 +26,12 @@ jobs:
         env:
           FB_RSS_URL: ${{ secrets.FB_RSS_URL }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: |
-          # 檢查環境變數是否為空 (不會洩漏具體內容)
-          if [ -z "$FB_RSS_URL" ]; then echo "錯誤: FB_RSS_URL 是空的"; fi
-          if [ -z "$DISCORD_WEBHOOK" ]; then echo "錯誤: DISCORD_WEBHOOK 是空的"; fi
-          
-          # 執行程式
-          python main.py
-          
-          # 強制檢查一下 last_link.txt 的內容
-          echo "目前 last_link.txt 的內容為："
-          cat last_link.txt || echo "檔案不存在"
+        run: python main.py
 
       - name: 儲存進度 (Git Commit)
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          # 確保檔案存在
-          touch last_link.txt 
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
           git add last_link.txt
-          
-          # 檢查是否有變動，有的話才 Commit 並 Push
-          if ! git diff --staged --quiet; then
-            git commit -m "chore: 更新最後讀取連結 [skip ci]"
-            git push
-          else
-            echo "No changes to commit"
-          fi
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update last link"
+          git push
