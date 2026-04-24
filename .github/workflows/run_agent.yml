@@ -1,12 +1,15 @@
 name: FB Monitor Agent
-
 on:
   schedule:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+concurrency:
+  group: fb-monitor
+  cancel-in-progress: false
+
 permissions:
-  contents: write # 必須有這個，Git Push 才會成功
+  contents: write
 
 jobs:
   build:
@@ -24,28 +27,35 @@ jobs:
         run: pip install feedparser requests
 
       - name: 執行監控腳本
+        id: monitor
         env:
           FB_RSS_URL: ${{ secrets.FB_RSS_URL }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python main.py
 
       - name: 儲存進度 (Git Commit)
+        if: success()
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # 防錯機制：如果 main.py 失敗沒產生檔案，這裡手動 touch 一個出來
           if [ ! -f last_link.txt ]; then
-            echo "警告：找不到 last_link.txt，建立空檔案以防止報錯。"
+            echo "警告：找不到 last_link.txt，建立空檔案。"
             touch last_link.txt
           fi
           
           git add last_link.txt
           
-          # 檢查是否有內容變動，有才 Commit
           if ! git diff --staged --quiet; then
             git commit -m "chore: 更新最後讀取連結"
             git push
           else
             echo "沒有新內容，跳過更新。"
           fi
+
+      - name: 失敗時發送 Discord 通知
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK }} \
+          -H "Content-Type: application/json" \
+          -d '{"content": "⚠️ 紅線特派員出任務失敗了，請老大檢查一下！"}'
